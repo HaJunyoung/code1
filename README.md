@@ -68,6 +68,7 @@ API Gateway를 단일 진입점으로 하여 라우팅 및 전역 인증(JWT)을
 * **망 분리:** 외부망(Public Subnet)에서는 API Gateway(8080)만 접근이 가능하며, 실제 비즈니스 로직을 처리하는 6개의 MSA 컨테이너와 DB/Kafka 인프라는 내부망(Private Subnet)으로 철저히 격리했습니다.
 
 <br>
+
 > 인바운드 정책
 
 | 대상           | 허용 포트       | 소스                 | 설명                        |
