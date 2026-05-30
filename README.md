@@ -121,15 +121,25 @@ API Gateway를 단일 진입점으로 하여 라우팅 및 전역 인증(JWT)을
 
 ## 💥 Troubleshooting (트러블슈팅)
 
-### Issue 1. 분산 환경에서의 보상 트랜잭션(Compensating Transaction) 처리
-* **배경:** `User Service`에서 회원가입 처리 시 Keycloak에 유저를 먼저 생성하고, 이후 내부 DB에 유저 정보를 저장하는 과정에서 예외(DB 에러 또는 입력된 Hub ID 무효)가 발생하면 Keycloak에만 유저가 남는 **고아 데이터(Orphan Data)** 현상이 발생했습니다.
-* **해결 방안:** 단순 `@Transactional`로는 외부 시스템(Keycloak)의 롤백이 불가능함을 인지하고, `catch` 블록 내에서 `keycloakClient.deleteUser()` API를 명시적으로 호출하는 **프로그래밍적 보상 트랜잭션 패턴**을 적용하여 분산 시스템 환경에서의 데이터 정합성을 확보했습니다.
+### Issue 1. 외부 API 호출 시 트랜잭션 점유 시간 최소화 (Facade 패턴)
+* **상황:** 업체(Company) 생성/수정 시, 타 서비스(Hub)를 호출하여 유효성 및 권한을 검증하는 로직과 DB 저장 로직이 한 Service 클래스에 혼재됨.
+* **문제:** 외부 API(Feign) 호출 시 발생할 수 있는 네트워크 지연이 DB 트랜잭션에 포함되어, **DB 커넥션 풀 고갈 및 데드락 위험(트랜잭션 유지 비용 증가)**이 존재.
+* **해결:** **Facade 계층**을 도입하여 트랜잭션이 없는 상태에서 Hub 유효성 및 사용자 권한 검증(외부 API 호출)을 선처리하고, 실제 DB 조작이 필요한 핵심 비즈니스 로직만 Service 계층(@Transactional)으로 위임하여 **트랜잭션 범위를 획기적으로 축소**했습니다.
 
-### Issue 2. 모노레포 CI 환경에서의 빌드 캐시 충돌 및 테스트 고도화
-* **배경:** MSA 모노레포 구조에서 깃허브 액션(GitHub Actions) CI 구동 시, 삭제된 파일의 `.class` 캐시가 남아 `ConflictingBeanDefinitionException`을 유발하고, 빈 깡통 서버에서 `@SpringBootTest`가 DB 연결을 시도해 CI가 터지는 문제가 발생했습니다.
-* **해결 방안:** 1. `.github/workflows`의 테스트 스텝에 `./gradlew clean test` 명령어를 적용해 빌드 캐시 유령(Ghost Class) 문제를 완전히 해결했습니다.
-  2. 무거운 컨텍스트 로딩 테스트를 삭제하고, **JUnit5 + Mockito 기반의 순수 단위 테스트(Unit Test)**로 전면 개편하여 CI 빌드 속도를 단축하고 비즈니스 로직(데이터 격리, 보상 트랜잭션 호출 등)의 엣지 케이스 검증 커버리지(Jacoco)를 대폭 끌어올렸습니다.
+### Issue 2. 분산 환경의 Kafka 이벤트 발행 타이밍 이슈 (Ghost Event 방지)
+* **상황:** 배송 배차 처리 로직 내에서 상태를 변경(DB Save)한 직후 Kafka 이벤트를 발행하는 구조로 구현.
+* **문제:** `@Transactional` 내부에서 Kafka를 직접 호출할 경우, 비즈니스 로직 예외로 인해 **DB가 롤백되더라도 Kafka 이벤트는 이미 발행(Commit-Rollback 불일치)**되어 타 서비스에서 존재하지 않는 데이터를 처리하려는 정합성 파괴 문제 발생.
+* **해결:** 이벤트 발행 로직을 분리하고, 스프링의 `@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)`을 적용하여 **DB 커밋이 완벽하게 성공한 직후에만 Kafka 이벤트가 발행**되도록 데이터 정합성을 보장했습니다.
 
+### Issue 3. 비동기 이벤트 유실 방지 및 전송 보장 (Outbox Pattern)
+* **상황:** 네트워크 지연이나 외부 시스템(Slack, Kafka 등) 장애 시 이벤트 및 알림 내역이 저장되지 않거나 발송이 누락되는 문제 발생.
+* **문제:** 위 Issue 2의 `AFTER_COMMIT` 방식조차도 커밋 직후 Kafka 서버가 다운되면 이벤트가 영구 유실됨.
+* **해결:** **Transactional Outbox 패턴**을 도입. 메인 트랜잭션과 동일한 트랜잭션으로 이벤트 정보를 DB(Outbox 테이블)에 `PENDING` 상태로 우선 저장. 이후 `AFTER_COMMIT`에서 즉시 발송을 시도하고, 실패 시 **Fallback 스케줄러**가 주기적으로 `PENDING` 상태의 이벤트를 폴링(Polling)하여 재시도함으로써 **최소 1회(At-Least-Once) 전송을 보장**하는 회복력 있는 아키텍처를 구축했습니다.
+
+### Issue 4. MSA 분산 환경에서의 에러 책임 소재 파악 및 디버깅
+* **상황:** User Service에서 Hub Service로 Feign 요청을 보낼 때, 500 Internal Server Error가 발생하여 전체 트랜잭션이 롤백됨.
+* **문제:** 하나의 요청이 여러 서버를 타는 MSA 특성상, 에러가 발생했을 때 '누구의 서버에서 발생한 문제인지' 특정하기 어려움.
+* **해결:** 각 서비스 컨테이너의 로그 트레이싱을 통해 Hub Service에서 `NoResourceFoundException`이 발생했음을 확인. 에러 로그라는 객관적 지표를 바탕으로 담당 팀원과 URL 매핑 스펙(API Contract)을 대조하여 병목 없이 빠르게 디버깅을 완료했습니다.
 <br>
 
 ## 🚀 서비스 구성 및 실행 방법
