@@ -140,6 +140,10 @@ API Gateway를 단일 진입점으로 하여 라우팅 및 전역 인증(JWT)을
 * **상황:** User Service에서 Hub Service로 Feign 요청을 보낼 때, 500 Internal Server Error가 발생하여 전체 트랜잭션이 롤백됨.
 * **문제:** 하나의 요청이 여러 서버를 타는 MSA 특성상, 에러가 발생했을 때 '누구의 서버에서 발생한 문제인지' 특정하기 어려움.
 * **해결:** 각 서비스 컨테이너의 로그 트레이싱을 통해 Hub Service에서 `NoResourceFoundException`이 발생했음을 확인. 에러 로그라는 객관적 지표를 바탕으로 담당 팀원과 URL 매핑 스펙(API Contract)을 대조하여 병목 없이 빠르게 디버깅을 완료했습니다.
+
+
+### Issue 5. (추가 작성 내용)
+
 <br>
 
 ## 🚀 서비스 구성 및 실행 방법
