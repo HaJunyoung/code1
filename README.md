@@ -185,7 +185,7 @@ API Gateway를 단일 진입점으로 하여 라우팅 및 전역 인증(JWT)을
 ## 📚 API Documentation
 
 프론트엔드 및 타 도메인 개발자와의 원활한 협업을 위해, 설계 초기부터 API Contract를 명확히 정의했습니다.
-* [📘 BoxOffice 통합 API 명세서 보러가기 (Notion)](#https://www.notion.so/teamsparta/BoxOffice-SA-3612dc3ef5148084ae4aefad9e37fca7?source=copy_link) <br>
+* [📘 BoxOffice 통합 API 명세서 보러가기 (Notion)](# https://www.notion.so/teamsparta/BoxOffice-SA-3612dc3ef5148084ae4aefad9e37fca7?source=copy_link) <br>
 
 <br>
 
