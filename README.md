@@ -86,11 +86,11 @@ API Gateway를 단일 진입점으로 하여 라우팅 및 전역 인증(JWT)을
 
 
 ## 🚀 서비스 구성 및 실행 방법
-Prerequisites
+### Prerequisites
   * Java 21
   * Docker & Docker Compose
 
-인프라 원클릭 셋업 (Infra Setup)
+### 인프라 원클릭 셋업 (Infra Setup)
 프로젝트 루트 디렉토리에서 아래 명령어를 통해 PostgreSQL(도메인별 스키마 분리), Redis, Kafka, Keycloak 인프라를 한 번에 기동합니다.
 </br>
 <img width="453" height="75" alt="image" src="https://github.com/user-attachments/assets/058f64c6-d9a9-4a38-bff2-93e6c71c6b38" />
