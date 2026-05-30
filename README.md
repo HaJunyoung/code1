@@ -34,15 +34,16 @@
 <br>
 
 ### ⚙️ System Architecture
+
 #### 🧩 Conceptual Architecture
 API Gateway를 단일 진입점으로 하여 라우팅 및 전역 인증(JWT)을 처리하며, 내부 서비스 간에는 동기적 FeignClient 호출과 비동기적 Kafka 이벤트 연동을 전략적으로 혼합하여 사용합니다.
-<p>
+<p align="center">
   <img src="https://github.com/user-attachments/assets/b54479b3-acb8-426b-b442-923a2630f356" width="700">
 </p>
 
 #### 🧬 ERD Diagram (Database Per Service)
 마이크로서비스 원칙에 따라 각 도메인별로 물리적인 데이터베이스(스키마)를 완벽히 분리(Database per Service)하여 서비스 간의 결합도를 낮췄습니다.
-<p>
+<p align="center">
   <img src="https://github.com/user-attachments/assets/dc2c8022-e769-467a-ae30-b861995f3d95" width="800">
 </p>
 
@@ -62,8 +63,11 @@ API Gateway를 단일 진입점으로 하여 라우팅 및 전역 인증(JWT)을
 | Data              | Kafka Cluster, Redis, PostgreSQL (6 DBs) | Private Data |
 | Authentication    | Keycloak                                 |       |
 
-#### 🔥Network | Firewall
+#### 🛡️ Network & Security (Firewall)
+* **API Gateway 전역 인증:** `JwtAuthenticationFilter`를 통해 모든 외부 요청의 Keycloak JWT 토큰을 검증합니다.
+* **망 분리:** 외부망(Public Subnet)에서는 API Gateway(8080)만 접근이 가능하며, 실제 비즈니스 로직을 처리하는 6개의 MSA 컨테이너와 DB/Kafka 인프라는 내부망(Private Subnet)으로 철저히 격리했습니다.
 
+<br>
 > 인바운드 정책
 
 | 대상           | 허용 포트       | 소스                 | 설명                        |
@@ -84,6 +88,36 @@ API Gateway를 단일 진입점으로 하여 라우팅 및 전역 인증(JWT)을
 | Slack Service → Slack API | 443                | Slack 알림 전송 허용 (화이트리스트 적용 가능) |
 | 내부 서비스 간 통신               | FeignClient, Kafka | 서비스 간 통신 허용                   |
 
+<br>
+
+## ✨ Core Features (주요 기능)
+
+### 1. 🔐 중앙 집중식 인증 및 다중 권한 제어 (User & Auth)
+* **Keycloak 기반 SSO 및 IAM:** 인증과 인가 책임을 `Keycloak`으로 분리하여 각 마이크로서비스는 비즈니스 로직에만 집중하도록 아키텍처를 설계했습니다.
+* **데이터 격리 (Data Isolation):** `HUB_MANAGER` 권한을 가진 유저는 시스템 전역 데이터가 아닌, **자신이 소속된 허브의 기사님/유저/주문 목록만 조회할 수 있도록** API 단에서 강력한 데이터 격리 정책을 적용했습니다.
+
+### 2. 🚚 라운드 로빈(Round-Robin) 기반 배송 기사 자동 배정
+* 특정 허브에 신규 배송 건이 발생 시, **대기 중(`WAITING`)인 기사님들 중 '마지막 배정 시각(`lastAssignedAt`)'이 가장 오래된 순서(오름차순)**로 쿼리하여 기사님을 공평하게 자동 배정합니다.
+* 외부 배달 서비스(Delivery Service)에서 FeignClient로 배정을 요청하면, 즉시 배정 처리 후 결과를 반환합니다.
+
+### 3. 📬 Kafka 기반 비동기 알림 및 AI 연동
+* **이벤트 주도 아키텍처 (EDA):** 배송 기사 배정이 완료되면 `delivery-manager.events` 토픽으로 `DeliveryAssigned` 이벤트를 발행합니다.
+* 알림 서비스(Notification)는 이를 Consume하여 슬랙(Slack)으로 비동기 발송을 진행하며, AI 서비스는 해당 이벤트를 트리거로 Gemini API를 호출해 예상 도착 시간을 산출합니다. 핵심 트랜잭션의 성능 저하를 막고 장애를 격리했습니다.
+
+<br>
+
+## 💥 Troubleshooting (트러블슈팅)
+
+### Issue 1. 분산 환경에서의 보상 트랜잭션(Compensating Transaction) 처리
+* **배경:** `User Service`에서 회원가입 처리 시 Keycloak에 유저를 먼저 생성하고, 이후 내부 DB에 유저 정보를 저장하는 과정에서 예외(DB 에러 또는 입력된 Hub ID 무효)가 발생하면 Keycloak에만 유저가 남는 **고아 데이터(Orphan Data)** 현상이 발생했습니다.
+* **해결 방안:** 단순 `@Transactional`로는 외부 시스템(Keycloak)의 롤백이 불가능함을 인지하고, `catch` 블록 내에서 `keycloakClient.deleteUser()` API를 명시적으로 호출하는 **프로그래밍적 보상 트랜잭션 패턴**을 적용하여 분산 시스템 환경에서의 데이터 정합성을 확보했습니다.
+
+### Issue 2. 모노레포 CI 환경에서의 빌드 캐시 충돌 및 테스트 고도화
+* **배경:** MSA 모노레포 구조에서 깃허브 액션(GitHub Actions) CI 구동 시, 삭제된 파일의 `.class` 캐시가 남아 `ConflictingBeanDefinitionException`을 유발하고, 빈 깡통 서버에서 `@SpringBootTest`가 DB 연결을 시도해 CI가 터지는 문제가 발생했습니다.
+* **해결 방안:** 1. `.github/workflows`의 테스트 스텝에 `./gradlew clean test` 명령어를 적용해 빌드 캐시 유령(Ghost Class) 문제를 완전히 해결했습니다.
+  2. 무거운 컨텍스트 로딩 테스트를 삭제하고, **JUnit5 + Mockito 기반의 순수 단위 테스트(Unit Test)**로 전면 개편하여 CI 빌드 속도를 단축하고 비즈니스 로직(데이터 격리, 보상 트랜잭션 호출 등)의 엣지 케이스 검증 커버리지(Jacoco)를 대폭 끌어올렸습니다.
+
+<br>
 
 ## 🚀 서비스 구성 및 실행 방법
 ### Prerequisites
