@@ -140,7 +140,7 @@ API Gateway를 단일 진입점으로 하여 라우팅 및 전역 인증(JWT)을
 * **Dev CI:** PR 생성 시 `Checkstyle`, `Unit Test`, `Jacoco Code Coverage(최소 50%)`를 자동 검증하며, 불필요한 빌드 캐시로 인한 에러를 예방(`clean test`)합니다.
 * **Main CI:** Main 브랜치 병합 시, Docker Compose를 활용한 `Integration Test`를 수행하여 실제 인프라 환경에서의 정합성을 2차 검증합니다. (Discord Webhook 연동)
 * **Flyway DB 마이그레이션:** 로컬 스키마 변경 시 발생하던 환경 불일치 문제를 해결하기 위해 Flyway를 도입, `git pull` 만으로 모든 팀원이 동일한 DB 상태를 유지하도록 자동화했습니다.
-* 
+  
 <br>
 
 ## 💥 Troubleshooting (트러블슈팅)
@@ -174,7 +174,9 @@ API Gateway를 단일 진입점으로 하여 라우팅 및 전역 인증(JWT)을
 ### Issue 7. (추가 작성 내용)
 
 ...
+<br>
 ...
+<br>
 ...
 
 <br>
