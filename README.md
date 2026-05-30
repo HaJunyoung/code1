@@ -50,7 +50,7 @@ API Gateway를 단일 진입점으로 하여 라우팅 및 전역 인증(JWT)을
 
 #### 💻 Infra Diagram
 
-<p>
+<p align="center">
   <img src="https://github.com/user-attachments/assets/f789fcb7-cd2a-48fd-bcba-da32a74efcc6" width="600">
 </p>
 
