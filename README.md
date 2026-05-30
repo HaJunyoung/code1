@@ -13,21 +13,6 @@
 
 <br>
 
-## 🚀 서비스 구성 및 실행 방법
-Prerequisites
-Java 21
-
-Docker & Docker Compose
-
-인프라 원클릭 셋업 (Infra Setup)
-프로젝트 루트 디렉토리에서 아래 명령어를 통해 PostgreSQL(도메인별 스키마 분리), Redis, Kafka, Keycloak 인프라를 한 번에 기동합니다.
-</br>
-<img width="453" height="75" alt="image" src="https://github.com/user-attachments/assets/058f64c6-d9a9-4a38-bff2-93e6c71c6b38" />
-
-서비스 실행 (Service Run)
-Eureka Server와 API Gateway를 먼저 기동한 후, 비즈니스 마이크로서비스들을 순차적으로 실행합니다.</br>
-<img width="364" height="237" alt="image" src="https://github.com/user-attachments/assets/37424a44-6ac9-4641-ac4a-4b5987bc8a74" />
-
 
 ## 🔍 프로젝트 목적/상세
 
@@ -48,18 +33,19 @@ Eureka Server와 API Gateway를 먼저 기동한 후, 비즈니스 마이크로�
 
 <br>
 
-### 📑 Technical Documentation
+### ⚙️ System Architecture
+#### 🧩 Conceptual Architecture
+API Gateway를 단일 진입점으로 하여 라우팅 및 전역 인증(JWT)을 처리하며, 내부 서비스 간에는 동기적 FeignClient 호출과 비동기적 Kafka 이벤트 연동을 전략적으로 혼합하여 사용합니다.
+<p>
+  <img src="https://github.com/user-attachments/assets/b54479b3-acb8-426b-b442-923a2630f356" width="700">
+</p>
 
-#### 🧬 ERD Diagram
+#### 🧬 ERD Diagram (Database Per Service)
+마이크로서비스 원칙에 따라 각 도메인별로 물리적인 데이터베이스(스키마)를 완벽히 분리(Database per Service)하여 서비스 간의 결합도를 낮췄습니다.
 <p>
   <img src="https://github.com/user-attachments/assets/dc2c8022-e769-467a-ae30-b861995f3d95" width="800">
 </p>
 
-#### 🧩 Conceptual Architecture
-
-<p>
-  <img src="https://github.com/user-attachments/assets/b54479b3-acb8-426b-b442-923a2630f356" width="700">
-</p>
 
 #### 💻 Infra Diagram
 
@@ -98,6 +84,21 @@ Eureka Server와 API Gateway를 먼저 기동한 후, 비즈니스 마이크로�
 | Slack Service → Slack API | 443                | Slack 알림 전송 허용 (화이트리스트 적용 가능) |
 | 내부 서비스 간 통신               | FeignClient, Kafka | 서비스 간 통신 허용                   |
 
+
+## 🚀 서비스 구성 및 실행 방법
+Prerequisites
+Java 21
+
+Docker & Docker Compose
+
+인프라 원클릭 셋업 (Infra Setup)
+프로젝트 루트 디렉토리에서 아래 명령어를 통해 PostgreSQL(도메인별 스키마 분리), Redis, Kafka, Keycloak 인프라를 한 번에 기동합니다.
+</br>
+<img width="453" height="75" alt="image" src="https://github.com/user-attachments/assets/058f64c6-d9a9-4a38-bff2-93e6c71c6b38" />
+
+서비스 실행 (Service Run)
+Eureka Server와 API Gateway를 먼저 기동한 후, 비즈니스 마이크로서비스들을 순차적으로 실행합니다.</br>
+<img width="364" height="237" alt="image" src="https://github.com/user-attachments/assets/37424a44-6ac9-4641-ac4a-4b5987bc8a74" />
 
 
 
