@@ -95,7 +95,7 @@ API Gateway를 단일 진입점으로 하여 라우팅 및 전역 인증(JWT)을
 </br>
 <img width="453" height="75" alt="image" src="https://github.com/user-attachments/assets/058f64c6-d9a9-4a38-bff2-93e6c71c6b38" />
 
-서비스 실행 (Service Run)
+### 서비스 실행 (Service Run)
 Eureka Server와 API Gateway를 먼저 기동한 후, 비즈니스 마이크로서비스들을 순차적으로 실행합니다.</br>
 <img width="364" height="237" alt="image" src="https://github.com/user-attachments/assets/37424a44-6ac9-4641-ac4a-4b5987bc8a74" />
 
