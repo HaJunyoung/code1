@@ -50,22 +50,6 @@ API Gateway를 단일 진입점으로 하여 라우팅 및 전역 인증(JWT)을
   <img src="https://github.com/user-attachments/assets/dc2c8022-e769-467a-ae30-b861995f3d95" width="800">
 </p>
 
-
-#### 💻 Infra Diagram
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/f789fcb7-cd2a-48fd-bcba-da32a74efcc6" width="600">
-</p>
-
-
-| Layer             | 요소                                       | 서브넷          |
-| ----------------- | ---------------------------------------- | ------------ |
-| Ingress           | ALB → API Gateway                        | Public       |
-| Service Discovery | Eureka Server                            | Public       |
-| Application       | MSA Container (6 Services)               | Private      |
-| Data              | Kafka Cluster, Redis, PostgreSQL (6 DBs) | Private Data |
-| Authentication    | Keycloak                                 |       |
-
 #### 🛡️ Network & Security (Firewall)
 * **API Gateway 전역 인증:** `JwtAuthenticationFilter`를 통해 모든 외부 요청의 Keycloak JWT 토큰을 검증합니다.
 * **망 분리:** 외부망(Public Subnet)에서는 API Gateway(8080)만 접근이 가능하며, 실제 비즈니스 로직을 처리하는 6개의 MSA 컨테이너와 DB/Kafka 인프라는 내부망(Private Subnet)으로 철저히 격리했습니다.
@@ -91,6 +75,24 @@ API Gateway를 단일 진입점으로 하여 라우팅 및 전역 인증(JWT)을
 | MSA → 외부 인터넷              | 차단                 | 외부 네트워크 직접 접근 제한              |
 | Slack Service → Slack API | 443                | Slack 알림 전송 허용 (화이트리스트 적용 가능) |
 | 내부 서비스 간 통신               | FeignClient, Kafka | 서비스 간 통신 허용                   |
+
+
+
+#### 💻 Infra Diagram
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/f789fcb7-cd2a-48fd-bcba-da32a74efcc6" width="600">
+</p>
+
+
+| Layer             | 요소                                       | 서브넷          |
+| ----------------- | ---------------------------------------- | ------------ |
+| Ingress           | ALB → API Gateway                        | Public       |
+| Service Discovery | Eureka Server                            | Public       |
+| Application       | MSA Container (6 Services)               | Private      |
+| Data              | Kafka Cluster, Redis, PostgreSQL (6 DBs) | Private Data |
+| Authentication    | Keycloak                                 |       |
+
 
 <br>
 
