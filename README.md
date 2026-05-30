@@ -119,7 +119,7 @@ API Gateway를 단일 진입점으로 하여 라우팅 및 전역 인증(JWT)을
 ### 4. 🤖 AI 기반 예측 및 비동기 알림 (AI & Notification)
 * **Gemini 연동:** 신규 주문 생성 이벤트를 수신하면, AI 서비스가 해당 주문의 발송 시한과 배송 지연 확률을 예측하여 데이터를 가공합니다.
 * **Slack Webhook:** 재시도 로직과 DLQ가 적용된 Notification 서비스를 통해 가공된 알림을 관리자 슬랙 채널로 안전하게 전송합니다.
-* 
+  
 <br>
 
 ## 📈 Performance & Observability (성능 최적화 및 모니터링)
@@ -193,13 +193,23 @@ API Gateway를 단일 진입점으로 하여 라우팅 및 전역 인증(JWT)을
 
 ### 인프라 원클릭 셋업 (Infra Setup)
 프로젝트 루트 디렉토리에서 아래 명령어를 통해 PostgreSQL(도메인별 스키마 분리), Redis, Kafka, Keycloak 인프라를 한 번에 기동합니다.
-</br>
-<img width="453" height="75" alt="image" src="https://github.com/user-attachments/assets/058f64c6-d9a9-4a38-bff2-93e6c71c6b38" />
+```bash
+$ docker-compose up -d postgres-db redis-cache keycloak
+```
 
 ### 서비스 실행 (Service Run)
 Eureka Server와 API Gateway를 먼저 기동한 후, 비즈니스 마이크로서비스들을 순차적으로 실행합니다.
-</br>
-<img width="364" height="237" alt="image" src="https://github.com/user-attachments/assets/37424a44-6ac9-4641-ac4a-4b5987bc8a74" />
+```bash
+# 1. Service Discovery
+$ ./gradlew :eureka-server:bootRun
+
+# 2. API Gateway
+$ ./gradlew :api-gateway:bootRun
+
+# 3. Domain Services
+$./gradlew :user-service:bootRun$ ./gradlew :delivery-manager-service:bootRun
+# ... (다른 서비스들도 동일한 방식으로 실행)
+```
 
 
 
